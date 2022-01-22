@@ -1,5 +1,86 @@
 # 大事件项目纪要
 
+## 所需的前置知识
+
+1.  **Vue 基础**
+
+-   vue-cli、指令、组件、路由、vuex
+
+2.  **axios**
+
+-   baseURL、拦截器
+
+3.  **element-ui**
+
+-   安装与配置、常用的组件
+
+4.  **npm 与 模块化**
+
+-   能使用 npm 维护项目中的依赖包
+-   ES6 模块化语法
+
+## 项目初始化
+
+### 基于 vue-cli 初始化 Vue2 模板的项目
+
+> 目的：为后面的项目开发做准备。
+
+一 、创建项目 vue create 项目名称
+
+二 、vue-cli 手动选择要安装的功能，选择第三个
+-   Default ([Vue 2] babel, eslint)
+-   Default (Vue 3) ([Vue 3] babel, eslint)
+-   **Manually select features**
+    三 、初始化 vue-cli 的核心步骤：
+1.  Manually select features
+
+    -   **(*) Choose Vue version**
+    -   **(*) Babel**
+    -   ( ) TypeScript
+    -   ( ) Progressive Web App (PWA) Support
+    -   **(*) Router**
+    -   **(*) Vuex**
+    -   **(*) CSS Pre-processors**
+    -   **(*) Linter / Formatter**
+    -   ( ) Unit Testing
+    -   ( ) E2E Testing
+
+2.  Choose a version of Vue.js that you want to start the project with (Use arrow keys)
+
+    -   **2.x**
+    -   3.x
+
+3.  Use history mode for router? (Requires proper server setup for index fallback in production) (Y/n)
+
+    -   **n**
+
+4.  Pick a CSS pre-processor (PostCSS, Autoprefixer and CSS Modules are supported by default): (Use arrow keys)
+
+    -   Sass/SCSS (with dart-sass)
+    -   Sass/SCSS (with node-sass)
+    -   **Less**
+    -   Stylus
+
+5.  Pick a linter / formatter config: (Use arrow keys)
+
+    -   ESLint + Airbnb config
+    -   **ESLint + Standard config**
+    -   ESLint + Prettier
+
+6.  Pick additional lint features: (Press `<space> `to select,` <a>` to toggle all, `<i>` to invert selection)
+
+    -   **(*) Lint on save**
+    -   ( ) Lint and fix on commit
+
+7.  Where do you prefer placing config for Babel, ESLint, etc.? (Use arrow keys)
+
+    -   **In dedicated config files**
+    -   In package.json
+
+8.  Save this as a preset for future projects? (y/N)
+
+    -   **N**
+
 ## 注册功能
 
 ### 路由实现组件切换
@@ -452,3 +533,165 @@
 4. 重新发起请求渲染页面
 5. 越界处理 (当最后一页删没了需要让 pagenum--)
 
+### 删除文章
+
+1.  使用作用域插槽包裹 el-button
+2.  给 el-button 绑定点击事件, 并传入 id
+3.  事件触发时根据 id 删除文章
+4.  重新发起请求渲染文章列表数据
+
+### 优化删除的操作
+
+发起请求删除文章完成以后,做如下判断在渲染文章列表
+```
+this.$message.success('删除成功!')
+
+  // 如果在刷新数据之前,当前页的数据只有 1 条，
+  // 而且，当前的页码值 > 1，
+  // 则说明当前页已没有数据可显示，需要让页码值 -1
++ if (this.artList.length === 1 && this.q.pagenum > 1) {
++   this.q.pagenum--
++ }
+  // 重新发起请求渲染文章列表数据
+  this.initArtList()
+```
+## 打包发布
+
+### 生成打包报告
+
+打开 `package.json` 配置文件，为 `scripts` 节点下的 `build` 命令添加 `--report` 参数：
+
+```
+{
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build --report",
+    "lint": "vue-cli-service lint"
+  }
+}
+```
+
+重新运行打包的命令：
+
+```
+npm run build 或 yarn bulid
+```
+
+打包完成后，发现在 `dist` 目录下多了一个名为 `report.html` 的文件。在浏览器中打开此文件，会看到详细的打包报告。
+
+
+
+### 基于 externals 配置 CDN 加速
+
+0.  未配置 `externals` 之前：
+
+    0.  凡是 `import` 导入的第三方模块，在最终打包完成后，会被合并到 `chunk-vendors.js` 中
+    1.  **缺点**：导致单个文件的体积过大
+
+1.  配置了 `externals` 之后：
+
+    0.  webpack 在进行打包时，会把 `externals` 节点下声明的第三方包排除在外
+    1.  因此最终打包生成的 js 文件中，不会包含 `externals` 节点下的包
+    2.  **好处**：优化了打包后项目的体积。
+
+### 初步配置 externals 节点
+
+1. 在项目根目录下创建 `vue.config.js` 配置文件，在里面新增 `configureWebpack` 节点如下：
+
+   ```
+   module.exports = {
+     // 省略其它代码...
+   
+     // 增强 vue-cli 的 webpack 配置项
+     configureWebpack: {
+       // 打包优化
+       externals: {
+         // import导包的包名: window全局的成员名称
+         echarts: 'echarts',
+         vue: 'Vue',
+         'vue-router': 'VueRouter',
+         vuex: 'Vuex',
+         axios: 'axios',
+         dayjs: 'dayjs',
+         'element-ui': 'ELEMENT',
+         'vue-quill-editor': 'VueQuillEditor',
+         'vuex-persistedstate': 'createPersistedState'
+       }
+     }
+   }
+   ```
+
+2. 在 `/public/index.html` 文件中，新增如下的资源引用：
+
+```
+ <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.2/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-router@3.2.0/dist/vue-router.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuex@3.4.0/dist/vuex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.24.0/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.10.7/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-quill-editor@3.0.6/dist/vue-quill-editor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuex-persistedstate@4.1.0/dist/vuex-persistedstate.umd.js"></script>
+
+```
+
+3. 在 `main.js` 中注释掉 `element-ui` 的样式和 `quill` 的样式：
+
+   ```
+   // 1. 导入 element-ui 组件库的样式
+   // import 'element-ui/lib/theme-chalk/index.css'
+   
+   // 2. 导入 quill 的样式
+   // import 'quill/dist/quill.core.css'
+   // import 'quill/dist/quill.snow.css'
+   // import 'quill/dist/quill.bubble.css'
+   ```
+
+4. 在 `/public/index.html` 文件的 `<title></title>` 标签之后，引入需要的 css 样式：
+
+```
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.core.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.bubble.css">
+```
+
+### 配置路由懒加载 优化性能
+
+> **参考 vue-router 的官方文档，进行**[路由懒加载](https://router.vuejs.org/zh/guide/advanced/lazy-loading.html#%E8%B7%AF%E7%94%B1%E6%87%92%E5%8A%A0%E8%BD%BD)**的配置**
+
+**配置路由懒加载的核心步骤：**
+
+1. 运行如下的命令，安装 babel 插件：
+
+   ```
+   npm install --save-dev @babel/plugin-syntax-dynamic-import
+   ```
+
+2. 修改项目根目录下的 `babel.config.js` 配置文件，新增 `plugins` 节点：
+
+   ```
+   module.exports = {
+     presets: ['@vue/cli-plugin-babel/preset'],
+     // 实现路由组件按需导入的 babel 插件
+   + plugins: ['@babel/plugin-syntax-dynamic-import']
+   }
+   ```
+
+3. 在 `/src/router/index.js` 模块中，基于 `const 组件 = () => import('组件的存放路径')` 语法，改造每个路由组件的导入方式。例如：
+
+   ```
+   // 路由懒加载 vue 异步组件技术 导入
+   const Reg = () => import('@/views/Reg/Reg.vue')
+   const Login = () => import('../views/Login/login.vue')
+   const Main = () => import('@/views/main/main')
+   const Home = () => import('../views/menus/Home/Home.vue')
+   const UserInfo = () => import('../views/menus/User/UserInfo.vue')
+   const UserAvatar = () => import('../views/menus/User/UserAvatar.vue')
+   const UserPwd = () => import('../views/menus/User/UserPwd.vue')
+   const ArtCate = () => import('../views/menus/Article/ArtCate.vue')
+   const ArtList = () => import('../views/menus/Article/ArtList.vue')
+   ```
